@@ -1,18 +1,21 @@
 import streamlit as st
 import pandas as pd
+#import mysql.connector
 from googleapiclient.discovery import build
 import sqlite3
-import pandas as pd 
 from db import insert_data,fetch_data_from_db,delete_data_from_db
 import isodate
 
 def search_youtube_data(api_key, channel_id):
+
+
     yt = build('youtube', 'v3', developerKey=api_key)
     req = yt.channels().list(
-        part='snippet,statistics',
+        part='snippet,statistics,contentDetails',
         id=channel_id
     )
     channels =[]
+    playlists =[]
     resp = req.execute()
     print(resp)
     item = resp['items'][0]
@@ -23,14 +26,15 @@ def search_youtube_data(api_key, channel_id):
     channel_status = 'Active'
     subscriber_count = item['statistics']['subscriberCount']
     video_count = item['statistics']['videoCount']
-    
+    playlist_Id = item['contentDetails']['relatedPlaylists']['uploads']
+    playlist_name = item['snippet']['title']
+
     req = yt.search().list(
         part='snippet,id',
         channelId=channel_id,
-        maxResults=10
+        maxResults=11
     )
     resp = req.execute()
-    #print(resp)
     videos = []
     for item in resp['items']:
         if item['id']['kind'] == 'youtube#video':
@@ -46,12 +50,13 @@ def search_youtube_data(api_key, channel_id):
             )
             resp = req.execute()
             print(resp)
-            video_dislikes = 0
-            video_likes = resp['items'][0]['statistics'].get('likeCount', 0)
-            video_dislikes = resp['items'][0]['statistics'].get('dislikeCount', 0)
-            video_comment_count = resp['items'][0]['statistics'].get('commentCount', 0)
-            video_views = resp['items'][0]['statistics'].get('viewCount', 0)
-            duration = resp['items'][0]['contentDetails'].get('duration', 0)
+            item = resp['items'][0]
+            # video_dislikes = 0
+            video_likes = item['statistics'].get('likeCount', 0)
+            video_dislikes = item['statistics'].get('dislikesCount', 0)
+            video_comment_count = item['statistics'].get('commentCount', 0)
+            video_views = item['statistics'].get('viewCount', 0)
+            duration = item['contentDetails'].get('duration', 0)
             request = yt.commentThreads().list(
                 part='snippet', 
 
@@ -95,48 +100,97 @@ def search_youtube_data(api_key, channel_id):
             'channel_description': channel_description,
             'channel_status': channel_status,
             'subscriber_count': subscriber_count,
-            'video_count': video_count
+            'video_count': video_count,
+            'playlist_Id': playlist_Id
+
+    })
+
+    playlists.append({
+            'channel_id': channel_id,
+            'playlist_Id': playlist_Id,
+            'playlist_name' : playlist_name
 
     })   
 
     df1 = pd.DataFrame(channels)
     df2 = pd.DataFrame(videos)
     df3 = pd.DataFrame(comments)
-    return (df1,df2,df3)
+    df4 = pd.DataFrame(playlists)
+    return (df1,df2,df3,df4)
 
 def main():
-   # global df1, df2, df3
-    #st.set_page_config(layout="wide")
-    tab1, tab2, tab3 = st.tabs(["Youtube Search Channels", "Query Records", "Table Data"])
+
+    tab1, tab2, tab3 = st.tabs(["Data Harvesting", "Query Records", "Database"])
     if 'df1' not in st.session_state:
         st.session_state.df1 = None
     if 'df2' not in st.session_state:
         st.session_state.df2 = None
     if 'df3' not in st.session_state:
         st.session_state.df3 = None
-    
+    if 'df4' not in st.session_state:
+        st.session_state.df4 = None
+
     with tab1:
         flag=0
-        st.title("Youtube Search Channels")
-        #apikey = st.text_input("Enter Api Key")
-        channelid = st.text_input("Enter Channel Id")
+        #sqlflag=0
+
+        st.markdown(":streamlit:")
         
-        cols = st.columns(6)
+    
+        st.title("Data Harvesting")
+        apikey = st.text_input("Enter Api Key")
+
+        #channelid = st.text_input("Enter Channel Id")
         
+        cols = st.columns(5)
+        st.title("Channels")
+        Channels = [
+            "Select",
+            "Parithabangal", 
+            "TECH BOSS", 
+            "TAMIL TECH", 
+            "TECH THALAIVA", 
+            "TECHSHAN", 
+            "TECHDREAMS", 
+            "THIS IS TECH TODAY",
+            "CNN",
+            "Vikkals",
+            "Trakin Tech Tamil"
+        ]
+
+        selected_option = st.selectbox("Select an option", Channels)
+        Channel_id = [
+                None,
+                "UCueYcgdqos0_PzNOq81zAFg", 
+                "UCnKhQkCUS1oCEvjuTfU4xIw", 
+                "UC20sXo8ReewkzNKBFgzVCPA", 
+                "UCwZiV2eywcB2XAcD1-6UCrQ",
+                "UCe_-TsRz3GH8UVjN0ApzXJQ", 
+                "UCzq1xxLmhvFfYUzKM4M8OyA",
+                "UCEAMLkMKtq6YhmaZdUT1ywA",
+                "UCupvZG-5ko_eiXAupbDfxWw",
+                "UC60c1RHrJ-4ta2GZYOM9Mcg",
+                "UCmJlSkSkgdXama3GSUgMC4g"
+        ]
+        # st.write(selected_option)
+        
+        selected_index = Channels.index(selected_option)
+        
+        channelid = Channel_id[selected_index]
         with cols[0]:
-            if st.button("Search"):
-                (st.session_state.df1,st.session_state.df2,st.session_state.df3) = search_youtube_data('AIzaSyBRqgoPkqCvMQfGF4iYNda9T8jFDyI98F4', channelid)
-                #st.write(st.session_state.df2)
-                #st.write(st.session_state.df3)
+            if st.button("Look up"):
+                (st.session_state.df1,st.session_state.df2,st.session_state.df3,st.session_state.df4) = search_youtube_data(apikey, channelid)
+     
         if st.session_state.df1 is not None:
             st.write(st.session_state.df1)
         with cols[1]:  
-            if st.button("Save to DB"):
+            if st.button("Store to Sqlite"):
                 if st.session_state.df1 is not None and st.session_state.df2 is not None and st.session_state.df3 is not None:
                     try:
                         insert_data(st.session_state.df1, 'channel')
                         insert_data(st.session_state.df2, 'video')
                         insert_data(st.session_state.df3, 'comment')
+                        insert_data(st.session_state.df4, 'playlist')
                         flag=1
                     except sqlite3.IntegrityError as e:
                         st.warning("Channel is already present")
@@ -144,22 +198,38 @@ def main():
                     st.warning("Data is not available. Please search data")
         if flag:
             st.success("Data is successfully added!")
+
+
+        # with cols[2]:  
+        #     if st.button("Store to MySQL"):
+        #         if st.session_state.df1 is not None and st.session_state.df2 is not None and st.session_state.df3 is not None:
+        #             try:
+        #                 # Assuming you have DataFrames df1, df2, and df3 ready
+        #                 insert_data_sql(st.session_state.df1, 'channel')
+        #                 insert_data_sql(st.session_state.df2, 'video')
+        #                 insert_data_sql(st.session_state.df3, 'comment')
+        #                 sqlflag=1
+        #             except mysql.connector.Error as error:
+        #                 print(f"Failed to connect to MySQL database: {error}")
+ 
+        # if sqlflag:
+        #     st.success("Data is successfully added to MySQL!")
                        
 
     with tab2:
         st.title("Query Records")
         options = [
             "Select",
-            "What are the names of all the videos and their corresponding channels?",
-            "Which channels have the most number of videos, and how many videos do they have?",
-            "What are the top 10 most viewed videos and their respective channels?",
-            "How many comments were made on each video, and what are their corresponding video names?",
-            "Which videos have the highest number of likes, and what are their corresponding channel names?",
-            "What is the total number of likes for each video, and what are their corresponding video names?",
-            "What is the total number of views for each channel, and what are their corresponding channel names?",
-            "What are the names of all the channels that have published videos in the year 2022?",
-            "What is the average duration of all videos in each channel, and what are their corresponding channel names?",
-            "Which videos have the highest number of comments, and what are their corresponding channel names?"
+            "1) What are the names of all the videos and their corresponding channels?",
+            "2) Which channels have the most number of videos, and how many videos do they have?",
+            "3) What are the top 10 most viewed videos and their respective channels?",
+            "4) How many comments were made on each video, and what are their corresponding video names?",
+            "5) Which videos have the highest number of likes, and what are their corresponding channel names?",
+            "6) What is the total number of likes for each video, and what are their corresponding video names?",
+            "7) What is the total number of views for each channel, and what are their corresponding channel names?",
+            "8) What are the names of all the channels that have published videos in the year 2022?",
+            "9) What is the average duration of all videos in each channel, and what are their corresponding channel names?",
+            "10) Which videos have the highest number of comments, and what are their corresponding channel names?"
         ]
 
         selected_option = st.selectbox("Select an option", options)
@@ -177,8 +247,7 @@ def main():
                 "SELECT c.channel_name, AVG(v.duration) AS avg_duration FROM channel c JOIN video v ON c.channel_id = v.channel_id GROUP BY c.channel_name;",
                 "SELECT v.video_title, c.channel_name, COUNT(cm.comment_id) AS comment_count FROM video v JOIN channel c ON v.channel_id = c.channel_id JOIN comment cm ON v.video_id = cm.video_id GROUP BY v.video_title ORDER BY comment_count DESC;"
         ]
-
-        st.write(selected_option)
+        #st.write(selected_option)
         
         selected_index = options.index(selected_option)
         
@@ -191,8 +260,8 @@ def main():
                 st.write(results)
     
     with tab3:
-        st.title("Table Data")
-        cols = st.columns(4)
+        st.title("Database")
+        cols = st.columns(5)
         res = None
         with cols[0]:
             if st.button("Channels DB"):
@@ -204,10 +273,14 @@ def main():
             if st.button("Comments DB"):
                 res = fetch_data_from_db("SELECT * FROM comment")
         with cols[3]:
-            if st.button("Delete Tables"):
+            if st.button("Playlist DB"):
+                res = fetch_data_from_db("SELECT * FROM playlist")
+        with cols[4]:
+            if st.button("Delete DB"):
                 res = delete_data_from_db("delete from channel")
                 res = delete_data_from_db("delete from video")
                 res = delete_data_from_db("delete from comment")
+                res = delete_data_from_db("delete from playlist")
         if res is not None:
             st.write(res)
         else:
