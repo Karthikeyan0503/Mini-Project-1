@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-#import mysql.connector
 from googleapiclient.discovery import build
 import sqlite3
 from db import insert_data,fetch_data_from_db,delete_data_from_db
@@ -20,7 +19,6 @@ def search_youtube_data(api_key, channel_id):
     print(resp)
     item = resp['items'][0]
     channel_name = item['snippet']['title']
-    # channel_type = item['snippet']['type']
     channel_views = item['statistics']['viewCount']
     channel_description = item['snippet']['description']
     channel_status = 'Active'
@@ -51,7 +49,6 @@ def search_youtube_data(api_key, channel_id):
             resp = req.execute()
             print(resp)
             item = resp['items'][0]
-            # video_dislikes = 0
             video_likes = item['statistics'].get('likeCount', 0)
             video_dislikes = item['statistics'].get('dislikesCount', 0)
             video_comment_count = item['statistics'].get('commentCount', 0)
@@ -95,7 +92,6 @@ def search_youtube_data(api_key, channel_id):
     channels.append({
             'channel_id': channel_id,
             'channel_name': channel_name,
-            # 'channel_type': channel_type,
             'channel_views': channel_views,
             'channel_description': channel_description,
             'channel_status': channel_status,
@@ -132,15 +128,11 @@ def main():
 
     with tab1:
         flag=0
-        #sqlflag=0
-
+       
         st.markdown(":streamlit:")
-        
     
         st.title("Data Harvesting")
         apikey = st.text_input("Enter Api Key")
-
-        #channelid = st.text_input("Enter Channel Id")
         
         cols = st.columns(5)
         st.title("Channels")
@@ -172,7 +164,6 @@ def main():
                 "UC60c1RHrJ-4ta2GZYOM9Mcg",
                 "UCmJlSkSkgdXama3GSUgMC4g"
         ]
-        # st.write(selected_option)
         
         selected_index = Channels.index(selected_option)
         
@@ -199,22 +190,6 @@ def main():
         if flag:
             st.success("Data is successfully added!")
 
-
-        # with cols[2]:  
-        #     if st.button("Store to MySQL"):
-        #         if st.session_state.df1 is not None and st.session_state.df2 is not None and st.session_state.df3 is not None:
-        #             try:
-        #                 # Assuming you have DataFrames df1, df2, and df3 ready
-        #                 insert_data_sql(st.session_state.df1, 'channel')
-        #                 insert_data_sql(st.session_state.df2, 'video')
-        #                 insert_data_sql(st.session_state.df3, 'comment')
-        #                 sqlflag=1
-        #             except mysql.connector.Error as error:
-        #                 print(f"Failed to connect to MySQL database: {error}")
- 
-        # if sqlflag:
-        #     st.success("Data is successfully added to MySQL!")
-                       
 
     with tab2:
         st.title("Query Records")
@@ -247,7 +222,6 @@ def main():
                 "SELECT c.channel_name, AVG(v.duration) AS avg_duration FROM channel c JOIN video v ON c.channel_id = v.channel_id GROUP BY c.channel_name;",
                 "SELECT v.video_title, c.channel_name, COUNT(cm.comment_id) AS comment_count FROM video v JOIN channel c ON v.channel_id = c.channel_id JOIN comment cm ON v.video_id = cm.video_id GROUP BY v.video_title ORDER BY comment_count DESC;"
         ]
-        #st.write(selected_option)
         
         selected_index = options.index(selected_option)
         

@@ -1,5 +1,4 @@
 import sqlite3
-#import mysql
 import pandas as pd
 
 def create_tables(conn):
@@ -56,31 +55,6 @@ def insert_data(df, table_name):
     column_names = tuple(df.columns)
     cursor.executemany(f"INSERT INTO {table_name} ({', '.join(column_names)}) VALUES ({', '.join(['?'] * len(column_names))})", data_tuples)
     conn.commit()
-
-
-# def insert_data_sql(df, table_name):
-#     try:
-#         mydb = mysql.connector.connect(
-#                             host="localhost",
-#                             user="root",
-#                             password="123456789",
-#                             database="MAB2"
-#                         )
-
-#         mycursor = mydb.cursor()
-#         for index, row in df.iterrows():
-#             sql = "INSERT INTO " + table_name + " VALUES ("
-#             sql += ", ".join(["%s"] * len(row)) + ")"
-#             val = tuple(row)
-#             mycursor.execute(sql, val)
-#         mydb.commit()
-#         mycursor.close()
-#         mydb.close()
-#     except mysql.connector.Error as error:
-#         if error.errno == 1062:
-#             print(f"Table {table_name} already exists or has duplicate entries.")
-#         else:
-#             print(f"Failed to insert data into {table_name}: {error}")
     
 def fetch_data_from_db(query):
     conn = sqlite3.connect('my_database.db')
