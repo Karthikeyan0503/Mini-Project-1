@@ -54,6 +54,6 @@ Once you have your API key, you can use it to authenticate your requests to the 
 
 App Execution
 
-1.Open command prompt
-2.Run below command
-(my_env) C:\Users\sangp>streamlit run C:\Users\sangp\Desktop\karthi\project\streamlit\YouTube_Data_Harvesting_and_Warehousing\app.py
+
+1.Run below command in Visual studio 
+C:\Users\Karthik\OneDrive\Documents\Datas_AIML\Projects\MiniProject_1(Youtube Data Harvasting)> streamlit run app.py
