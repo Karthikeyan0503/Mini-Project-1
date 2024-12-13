@@ -237,6 +237,7 @@ def main():
         st.title("Database")
         cols = st.columns(5)
         res = None
+        flagdelete = 0
         with cols[0]:
             if st.button("Channels DB"):
                 res = fetch_data_from_db("SELECT * FROM channel")
@@ -255,9 +256,10 @@ def main():
                 res = delete_data_from_db("delete from video")
                 res = delete_data_from_db("delete from comment")
                 res = delete_data_from_db("delete from playlist")
+                flagdelete = 1
         if res is not None:
             st.write(res)
-        else:
+        elif res is None and flagdelete:
             st.warning("No data!")
                 
         
